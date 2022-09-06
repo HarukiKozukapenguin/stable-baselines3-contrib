@@ -19,6 +19,7 @@ from stable_baselines3.common.vec_env import VecEnv
 from sb3_contrib.common.recurrent.buffers import RecurrentDictRolloutBuffer, RecurrentRolloutBuffer
 from sb3_contrib.common.recurrent.policies import RecurrentActorCriticPolicy
 from sb3_contrib.common.recurrent.type_aliases import RNNStates
+from sb3_contrib.common.recurrent.utils import plot3d_traj, traj_rollout
 from sb3_contrib.ppo_recurrent.policies import CnnLstmPolicy, MlpLstmPolicy, MultiInputLstmPolicy
 
 
