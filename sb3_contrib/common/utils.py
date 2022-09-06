@@ -172,6 +172,42 @@ def flat_grad(
     )
     return th.cat([th.ravel(grad) for grad in grads if grad is not None])
 
+columns = [
+    "episode_id",
+    "done",
+    "reward",
+    "t",
+    "px",
+    "py",
+    "pz",
+    "qw",
+    "qx",
+    "qy",
+    "qz",
+    "Tilt",
+    "vx",
+    "vy",
+    "vz",
+    "wx",
+    "wy",
+    "wz",
+    "ax",
+    "ay",
+    "az",
+    "mot1",
+    "mot2",
+    "mot3",
+    "mot4",
+    "thrust1",
+    "thrust2",
+    "thrust3",
+    "thrust4",
+    "act1",
+    "act2",
+    "act3",
+    "act4",
+]
+
 def traj_rollout(env, policy, max_ep_length = 1000):
     traj_df = pd.DataFrame(columns=columns)
     # max_ep_length = 1000
