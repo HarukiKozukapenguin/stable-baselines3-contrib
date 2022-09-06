@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 from copy import deepcopy
@@ -490,7 +491,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "OnPolicyAlgorithm",
+        tb_log_name: str = "RecurrentPPO",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
     ) -> "RecurrentPPO":
