@@ -4,10 +4,15 @@ import time
 from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+
 import gym
 import numpy as np
 import torch as th
+import scipy
 from gym import spaces
+from mpl_toolkits.mplot3d import Axes3D
 from stable_baselines3.common.buffers import RolloutBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
@@ -224,6 +229,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
         :param tb_log_name: the name of the run for tensorboard log
         :return:
         """
+        self.start_time = time.time_ns()
 
         total_timesteps, callback = super()._setup_learn(
             total_timesteps,
