@@ -96,6 +96,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
         create_eval_env: bool = False,
         policy_kwargs: Optional[Dict[str, Any]] = None,
         verbose: int = 0,
+        check: bool = False,
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
@@ -134,6 +135,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
         self.normalize_advantage = normalize_advantage
         self.target_kl = target_kl
         self._last_lstm_states = None
+        self.check = check
 
         if _init_setup_model:
             self._setup_model()
