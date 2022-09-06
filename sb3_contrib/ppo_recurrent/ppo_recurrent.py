@@ -114,7 +114,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
             use_sde=use_sde,
             sde_sample_freq=sde_sample_freq,
             tensorboard_log=tensorboard_log,
-            create_eval_env=create_eval_env,
+            # create_eval_env=create_eval_env,
             policy_kwargs=policy_kwargs,
             verbose=verbose,
             seed=seed,
