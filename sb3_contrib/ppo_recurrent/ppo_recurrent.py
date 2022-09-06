@@ -486,25 +486,34 @@ class RecurrentPPO(OnPolicyAlgorithm):
         self,
         total_timesteps: int,
         callback: MaybeCallback = None,
-        log_interval: int = 1,
+        log_interval: int = 10,
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "RecurrentPPO",
+        tb_log_name: str = "OnPolicyAlgorithm",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
     ) -> "RecurrentPPO":
         iteration = 0
 
         total_timesteps, callback = self._setup_learn(
-            total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
+            total_timesteps,
+            eval_env,
+            callback,
+            eval_freq,
+            n_eval_episodes,
+            eval_log_path,
+            reset_num_timesteps,
+            tb_log_name,
         )
 
         callback.on_training_start(locals(), globals())
 
         while self.num_timesteps < total_timesteps:
 
-            continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps)
+            continue_training = self.collect_rollouts(
+                self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps
+            )
 
             if continue_training is False:
                 break
@@ -514,19 +523,112 @@ class RecurrentPPO(OnPolicyAlgorithm):
 
             # Display training infos
             if log_interval is not None and iteration % log_interval == 0:
-                time_elapsed = max((time.time_ns() - self.start_time) / 1e9, sys.float_info.epsilon)
-                fps = int((self.num_timesteps - self._num_timesteps_at_start) / time_elapsed)
+                fps = int(self.num_timesteps / (time.time() - self.start_time))
                 self.logger.record("time/iterations", iteration, exclude="tensorboard")
                 if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
-                    self.logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
-                    self.logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+                    self.logger.record(
+                        "rollout/ep_rew_mean",
+                        safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]),
+                    )
+                    self.logger.record(
+                        "rollout/ep_len_mean",
+                        safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]),
+                    )
                 self.logger.record("time/fps", fps)
-                self.logger.record("time/time_elapsed", int(time_elapsed), exclude="tensorboard")
-                self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
+                self.logger.record(
+                    "time/time_elapsed",
+                    int(time.time() - self.start_time),
+                    exclude="tensorboard",
+                )
+                self.logger.record(
+                    "time/total_timesteps", self.num_timesteps, exclude="tensorboard"
+                )
+                for i in range(self.env.rew_dim - 1):
+                    self.logger.record(
+                        "rewards/{0}".format(self.env.reward_names[i]),
+                        safe_mean(
+                            [
+                                ep_info[self.env.reward_names[i]]
+                                for ep_info in self.ep_info_buffer
+                            ]
+                        ),
+                    )
+
                 self.logger.dump(step=self.num_timesteps)
 
             self.train()
 
+            if iteration % 10 == 0 and iteration <= 1000:
+                # update running mean and standard deivation for state normalization
+                self.env.update_rms()
+
+            if log_interval is not None and iteration % log_interval == 0:
+                policy_path = self.logger.get_dir() + "/Policy"
+                os.makedirs(policy_path, exist_ok=True)
+                self.policy.save(policy_path + "/iter_{0:05d}.pth".format(iteration))
+
+                self.env.save_rms(
+                    save_dir=self.logger.get_dir() + "/RMS", n_iter=iteration
+                )
+                # self.eval(iteration)
+                # print(self.batch_size)
+                # print(total_timesteps)
+                # print(int(total_timesteps/self.batch_size))
+                # print(iteration)
+                if not self.check:
+                    if iteration == int(total_timesteps/self.batch_size):
+                        self.eval(iteration, max_ep_length = 100000)
+                    else:
+                        self.eval(iteration)
+                else:
+                    self.eval(iteration)
+
         callback.on_training_end()
 
         return self
+        
+    def eval(self, iteration, max_ep_length = 1000) -> None:
+        save_path = self.logger.get_dir() + "/TestTraj"
+        os.makedirs(save_path, exist_ok=True)
+
+        #
+        self.policy.eval()
+        self.eval_env.load_rms(
+            self.logger.get_dir() + "/RMS/iter_{0:05d}.npz".format(iteration)
+        )
+
+        # rollout trajectory and save the trajectory
+        traj_df = traj_rollout(self.eval_env, self.policy, max_ep_length = max_ep_length)
+        traj_df.to_csv(save_path + "/test_traj_{0:05d}.csv".format(iteration))
+
+        # generate plots
+        fig1 = plt.figure(figsize=(10, 6))
+        # fig1.subplots_adjust(
+        #     left=None, bottom=None, right=None, top=None, wspace=None, hspace=None
+        # )
+        gs1 = gridspec.GridSpec(4, 3)
+        ax3d = fig1.add_subplot(gs1[2:3, 0:3], projection="3d")
+        axpos, axvel = [], []
+        for i in range(3):
+            axpos.append(fig1.add_subplot(gs1[0, i]))
+            axvel.append(fig1.add_subplot(gs1[1, i]))
+        episode_idx = traj_df.episode_id.unique()
+        for ep_i in episode_idx:
+            conditions = "episode_id == {0}".format(ep_i)
+            traj_episode_i = traj_df.query(conditions)
+            pos = traj_episode_i.loc[:, ["px", "py", "pz"]].to_numpy(dtype=np.float64)
+            vel = traj_episode_i.loc[:, ["vx", "vy", "vz"]].to_numpy(dtype=np.float64)
+
+            #
+            axpos[0].plot(pos[:, 0])
+            axpos[1].plot(pos[:, 1])
+            axpos[2].plot(pos[:, 2])
+            #
+            axvel[0].plot(vel[:, 0])
+            axvel[1].plot(vel[:, 1])
+            axvel[2].plot(vel[:, 2])
+            plot3d_traj(ax3d=ax3d, pos=pos, vel=vel)
+        #
+        save_path = self.logger.get_dir() + "/TestTraj" + "/Plots"
+        os.makedirs(save_path, exist_ok=True)
+        fig1.savefig(save_path + "/traj_3d_{0:05d}.png".format(iteration))
