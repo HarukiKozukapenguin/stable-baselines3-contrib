@@ -93,7 +93,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
         sde_sample_freq: int = -1,
         target_kl: Optional[float] = None,
         tensorboard_log: Optional[str] = None,
-        create_eval_env: bool = False,
+        eval_env: Union[GymEnv, str] = None,
         policy_kwargs: Optional[Dict[str, Any]] = None,
         verbose: int = 0,
         check: bool = False,
@@ -136,6 +136,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
         self.target_kl = target_kl
         self._last_lstm_states = None
         self.check = check
+        self.eval_env = eval_env
 
         if _init_setup_model:
             self._setup_model()
