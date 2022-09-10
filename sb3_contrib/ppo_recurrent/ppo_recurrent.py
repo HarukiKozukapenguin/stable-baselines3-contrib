@@ -554,16 +554,16 @@ class RecurrentPPO(OnPolicyAlgorithm):
                 self.logger.record(
                     "time/total_timesteps", self.num_timesteps, exclude="tensorboard"
                 )
-                for i in range(self.env.rew_dim - 1):
-                    self.logger.record(
-                        "rewards/{0}".format(self.env.reward_names[i]),
-                        safe_mean(
-                            [
-                                ep_info[self.env.reward_names[i]]
-                                for ep_info in self.ep_info_buffer
-                            ]
-                        ),
-                    )
+                # for i in range(self.env.rew_dim - 1):
+                #     self.logger.record(
+                #         "rewards/{0}".format(self.env.reward_names[i]),
+                #         safe_mean(
+                #             [
+                #                 ep_info[self.env.reward_names[i]]
+                #                 for ep_info in self.ep_info_buffer
+                #             ]
+                #         ),
+                #     )
 
                 self.logger.dump(step=self.num_timesteps)
 
