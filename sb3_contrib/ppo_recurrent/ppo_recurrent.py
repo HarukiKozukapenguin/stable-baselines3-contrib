@@ -569,30 +569,30 @@ class RecurrentPPO(OnPolicyAlgorithm):
 
             self.train()
 
-            if iteration % 10 == 0 and iteration <= 1000:
-                # update running mean and standard deivation for state normalization
-                self.env.update_rms()
+            # if iteration % 10 == 0 and iteration <= 1000:
+            #     # update running mean and standard deivation for state normalization
+            #     # self.env.update_rms()
 
-            if log_interval is not None and iteration % log_interval == 0:
-                policy_path = self.logger.get_dir() + "/Policy"
-                os.makedirs(policy_path, exist_ok=True)
-                self.policy.save(policy_path + "/iter_{0:05d}.pth".format(iteration))
+            # if log_interval is not None and iteration % log_interval == 0:
+            #     policy_path = self.logger.get_dir() + "/Policy"
+            #     os.makedirs(policy_path, exist_ok=True)
+            #     self.policy.save(policy_path + "/iter_{0:05d}.pth".format(iteration))
 
-                self.env.save_rms(
-                    save_dir=self.logger.get_dir() + "/RMS", n_iter=iteration
-                )
-                # self.eval(iteration)
-                # print(self.batch_size)
-                # print(total_timesteps)
-                # print(int(total_timesteps/self.batch_size))
-                # print(iteration)
-                if not self.check:
-                    if iteration == int(total_timesteps/self.batch_size):
-                        self.eval(iteration, max_ep_length = 100000)
-                    else:
-                        self.eval(iteration)
-                else:
-                    self.eval(iteration)
+            #     self.env.save_rms(
+            #         save_dir=self.logger.get_dir() + "/RMS", n_iter=iteration
+            #     )
+            #     # self.eval(iteration)
+            #     # print(self.batch_size)
+            #     # print(total_timesteps)
+            #     # print(int(total_timesteps/self.batch_size))
+            #     # print(iteration)
+            #     if not self.check:
+            #         if iteration == int(total_timesteps/self.batch_size):
+            #             self.eval(iteration, max_ep_length = 100000)
+            #         else:
+            #             self.eval(iteration)
+            #     else:
+            #         self.eval(iteration)
 
         callback.on_training_end()
 
