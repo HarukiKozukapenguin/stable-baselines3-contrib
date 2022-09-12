@@ -229,7 +229,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
         :param tb_log_name: the name of the run for tensorboard log
         :return:
         """
-        self.start_time = time.time_ns()
+        self.start_time = time.time()
 
         total_timesteps, callback = super()._setup_learn(
             total_timesteps,
