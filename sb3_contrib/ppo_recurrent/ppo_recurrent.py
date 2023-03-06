@@ -497,7 +497,8 @@ class RecurrentPPO(OnPolicyAlgorithm):
         self,
         total_timesteps: int,
         callback: MaybeCallback = None,
-        log_interval: int = 10,
+        policy_log_interval: int = 100,
+        tb_log_interval: int = 10,
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
@@ -533,7 +534,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
             self._update_current_progress_remaining(self.num_timesteps, total_timesteps)
 
             # Display training infos
-            if log_interval is not None and iteration % log_interval == 0:
+            if tb_log_interval is not None and iteration % tb_log_interval == 0:
                 fps = int(self.num_timesteps / (time.time() - self.start_time))
                 self.logger.record("time/iterations", iteration, exclude="tensorboard")
                 if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
@@ -573,7 +574,7 @@ class RecurrentPPO(OnPolicyAlgorithm):
                 # update running mean and standard deivation for state normalization
                 self.env.update_rms()
 
-            if log_interval is not None and iteration % log_interval == 0:
+            if policy_log_interval is not None and iteration % policy_log_interval == 0:
                 policy_path = self.logger.get_dir() + "/Policy"
                 os.makedirs(policy_path, exist_ok=True)
                 self.policy.save(policy_path + "/iter_{0:05d}.pth".format(iteration))
