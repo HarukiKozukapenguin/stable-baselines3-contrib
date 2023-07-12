@@ -144,6 +144,7 @@ class RecurrentActorCriticPolicy(ActorCriticPolicy):
 
         # Setup optimizer with initial learning rate
         self.optimizer = self.optimizer_class(self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+        self.important_obs_layers_dims = net_arch.get("important_obs", 0)
 
     def _build_mlp_extractor(self) -> None:
         """
@@ -226,6 +227,7 @@ class RecurrentActorCriticPolicy(ActorCriticPolicy):
         :return: action, value and log probability of the action
         """
         # Preprocess the observation if needed
+        important_obs = obs[:, :self.important_obs_layers_dims]
         features = self.extract_features(obs)
         # latent_pi, latent_vf = self.mlp_extractor(features)
         latent_pi, lstm_states_pi = self._process_sequence(features, lstm_states.pi, episode_starts, self.lstm_actor)
@@ -240,8 +242,8 @@ class RecurrentActorCriticPolicy(ActorCriticPolicy):
             latent_vf = self.critic(features)
             lstm_states_vf = lstm_states_pi
 
-        latent_pi = self.mlp_extractor.forward_actor(latent_pi)
-        latent_vf = self.mlp_extractor.forward_critic(latent_vf)
+        latent_pi = self.mlp_extractor.forward_actor(latent_pi, important_obs)
+        latent_vf = self.mlp_extractor.forward_critic(latent_vf, important_obs)
 
         # Evaluate the values for the given observations
         values = self.value_net(latent_vf)
@@ -265,9 +267,10 @@ class RecurrentActorCriticPolicy(ActorCriticPolicy):
             or not (we reset the lstm states in that case).
         :return: the action distribution and new hidden states.
         """
+        important_obs = obs[:, :self.important_obs_layers_dims]
         features = self.extract_features(obs)
         latent_pi, lstm_states = self._process_sequence(features, lstm_states, episode_starts, self.lstm_actor)
-        latent_pi = self.mlp_extractor.forward_actor(latent_pi)
+        latent_pi = self.mlp_extractor.forward_actor(latent_pi, important_obs)
         return self._get_action_dist_from_latent(latent_pi), lstm_states
 
     def predict_values(
@@ -285,6 +288,7 @@ class RecurrentActorCriticPolicy(ActorCriticPolicy):
             or not (we reset the lstm states in that case).
         :return: the estimated values.
         """
+        important_obs = obs[:, :self.important_obs_layers_dims]
         features = self.extract_features(obs)
         if self.lstm_critic is not None:
             latent_vf, lstm_states_vf = self._process_sequence(features, lstm_states, episode_starts, self.lstm_critic)
@@ -295,7 +299,7 @@ class RecurrentActorCriticPolicy(ActorCriticPolicy):
         else:
             latent_vf = self.critic(features)
 
-        latent_vf = self.mlp_extractor.forward_critic(latent_vf)
+        latent_vf = self.mlp_extractor.forward_critic(latent_vf, important_obs)
         return self.value_net(latent_vf)
 
     def evaluate_actions(
@@ -318,6 +322,7 @@ class RecurrentActorCriticPolicy(ActorCriticPolicy):
             and entropy of the action distribution.
         """
         # Preprocess the observation if needed
+        important_obs = obs[:, :self.important_obs_layers_dims]
         features = self.extract_features(obs)
         latent_pi, _ = self._process_sequence(features, lstm_states.pi, episode_starts, self.lstm_actor)
 
@@ -328,8 +333,8 @@ class RecurrentActorCriticPolicy(ActorCriticPolicy):
         else:
             latent_vf = self.critic(features)
 
-        latent_pi = self.mlp_extractor.forward_actor(latent_pi)
-        latent_vf = self.mlp_extractor.forward_critic(latent_vf)
+        latent_pi = self.mlp_extractor.forward_actor(latent_pi, important_obs)
+        latent_vf = self.mlp_extractor.forward_critic(latent_vf, important_obs)
 
         distribution = self._get_action_dist_from_latent(latent_pi)
         log_prob = distribution.log_prob(actions)
